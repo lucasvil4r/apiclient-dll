@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 
 namespace ApiClient
 {
     [ComVisible(true)]
     [Guid("A4F02ED9-69C7-45B9-A00C-54D4A7CD842F")]
-    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IApiClient
     {
         [DispId(1)]
-        string GetApiResponse(string baseAddress, string endpoint);
+        string GetApiResponse(string baseAddress, string endpoint, string token);
     }
 
     [ComVisible(true)]
@@ -22,40 +20,18 @@ namespace ApiClient
     [ProgId("ApiClient")]
     public class ApiClientAsync : IApiClient
     {
-        public string GetApiResponse(string baseAddress, string endpoint)
-        {
-            var headers = new Dictionary<string, string>
-            {
-                { "Authorization", "Bearer <token>" }
-            };
-            Task<string> task = GetApiResponseAsync(baseAddress, endpoint, headers);
-            return task.Result;
-        }
-
-        public async Task<string> GetApiResponseAsync(string baseAddress, string endpoint, Dictionary<string, string> headers = null)
+        public string GetApiResponse(string baseAddress, string endpoint, string token)
         {
             try
             {
-                var _httpClient = new HttpClient
-                {
-                    BaseAddress = new Uri(baseAddress)
-                };
+                var _httpClient = new HttpClient{BaseAddress = new Uri(baseAddress)};
                 _httpClient.DefaultRequestHeaders.Accept.Clear();
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
 
-                // Adicionar headers, se fornecidos
-                if (headers != null)
-                {
-                    foreach (var header in headers)
-                    {
-                        _httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
-                    }
-                }
-
-                HttpResponseMessage response = await _httpClient.GetAsync(endpoint);
+                HttpResponseMessage response = _httpClient.GetAsync(endpoint).Result;
                 response.EnsureSuccessStatusCode(); // Lança exceção se a resposta não for bem-sucedida
-
-                return await response.Content.ReadAsStringAsync();
+                return response.Content.ReadAsStringAsync().Result;
             }
             catch (HttpRequestException ex)
             {
