@@ -2,16 +2,17 @@
 using System.Net.Http.Headers;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace ApiClient
 {
     [ComVisible(true)]
     [Guid("A4F02ED9-69C7-45B9-A00C-54D4A7CD842F")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [InterfaceType(ComInterfaceType.InterfaceIsIInspectable)]
     public interface IApiClient
     {
         [DispId(1)]
-        string GetApiResponse(string baseAddress, string endpoint, string token);
+        string RequestRunExecutableApi(string baseAddress, string endpoint, string token);
     }
 
     [ComVisible(true)]
@@ -20,24 +21,21 @@ namespace ApiClient
     [ProgId("ApiClient")]
     public class ApiClientAsync : IApiClient
     {
-        public string GetApiResponse(string baseAddress, string endpoint, string token)
+        public string RequestRunExecutableApi(string baseAddress, string endpoint, string token)
         {
-            try
-            {
-                var _httpClient = new HttpClient{BaseAddress = new Uri(baseAddress)};
-                _httpClient.DefaultRequestHeaders.Accept.Clear();
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+            // Get the temporary directory path
+            string tempDir = Path.GetTempPath();
 
-                HttpResponseMessage response = _httpClient.GetAsync(endpoint).Result;
-                response.EnsureSuccessStatusCode(); // Lança exceção se a resposta não for bem-sucedida
-                return response.Content.ReadAsStringAsync().Result;
-            }
-            catch (HttpRequestException ex)
-            {
-                // Lidar com erros de conexão, timeouts, etc.
-                return $"Error: {ex.Message}";
-            }
+            // Create a unique file name for the temporary file
+            string tempFileName = $"api_response_{Guid.NewGuid()}.json";
+
+            // Combine the directory and file name to get the full path
+            string tempFilePath = Path.Combine(tempDir, tempFileName);
+
+            // Execute a aplicação de console
+            System.Diagnostics.Process.Start(Environment.GetEnvironmentVariable("ApiClient"), $"{baseAddress} {endpoint} {token} {tempFilePath}");
+
+            return tempFilePath;
         }
     }
 }
