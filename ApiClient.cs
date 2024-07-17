@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Net.Http.Headers;
-using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Diagnostics;
 
 namespace ApiClient
 {
@@ -33,7 +32,11 @@ namespace ApiClient
             string tempFilePath = Path.Combine(tempDir, tempFileName);
 
             // Execute a aplicação de console
-            System.Diagnostics.Process.Start(Environment.GetEnvironmentVariable("ApiClient"), $"{baseAddress} {endpoint} {token} {tempFilePath}");
+            var process = new Process();
+            process.StartInfo.FileName = Environment.GetEnvironmentVariable("ApiClient");
+            process.StartInfo.Arguments = $"{baseAddress} {endpoint} {token} {tempFilePath}";
+            process.Start();
+            process.WaitForExit(); // Aguarda até que o processo termine
 
             return tempFilePath;
         }
