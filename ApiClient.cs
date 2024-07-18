@@ -38,7 +38,17 @@ namespace ApiClient
             process.Start();
             process.WaitForExit(); // Aguarda até que o processo termine
 
-            return tempFilePath;
+            try
+            {
+                // Lê todo o conteúdo do arquivo e armazena em uma string
+                string fileContent = File.ReadAllText(tempFilePath);
+                return fileContent;
+            }
+            catch (Exception ex)
+            {
+                // Em caso de erro, retorna a mensagem de erro
+                return $"Erro ao ler o arquivo: {ex.Message}";
+            }
         }
     }
 }

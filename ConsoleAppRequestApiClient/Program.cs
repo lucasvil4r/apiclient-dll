@@ -4,6 +4,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Console.WriteLine("Consultando API...");
         if (args.Length >= 4)
         {
             string baseAddress = args[0];
