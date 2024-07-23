@@ -33,7 +33,19 @@ namespace ApiClient
 
             // Execute a aplicação de console
             var process = new Process();
-            process.StartInfo.FileName = Environment.GetEnvironmentVariable("ApiClient");
+            var apiClientPath = Environment.GetEnvironmentVariable("ApiClient");
+
+            if (string.IsNullOrEmpty(apiClientPath))
+            {
+                return ("A variável de ambiente 'ApiClient' não está definida.");
+            }
+
+            if (!File.Exists(apiClientPath))
+            {
+                return ($"O arquivo especificado em 'ApiClient' não foi encontrado: {apiClientPath}");
+            }
+
+            process.StartInfo.FileName = apiClientPath;
             process.StartInfo.Arguments = $"{baseAddress} {endpoint} {token} {tempFilePath}";
             process.Start();
             process.WaitForExit(); // Aguarda até que o processo termine
