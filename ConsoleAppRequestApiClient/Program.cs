@@ -49,7 +49,8 @@ public class Program
         catch (Exception ex)
         {
             // Handle any exceptions (e.g., permission issues, disk full, etc.)
-            return ($"Error creating temporary file: {ex.Message}");
+            File.WriteAllText(tempFilePath, $"Error: {ex.Message}");
+            return ($"Error: {ex.Message}");
         }
     }
 }
