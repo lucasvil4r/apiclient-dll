@@ -33,7 +33,7 @@ namespace ApiClient
 
             // Execute a aplicação de console
             var process = new Process();
-            var apiClientPath = Environment.GetEnvironmentVariable("ApiClient");
+            var apiClientPath = Environment.GetEnvironmentVariable("ApiClient"); //Caminho setado na variavel de ambiente do user no windows
             process.StartInfo.FileName = apiClientPath;
             process.StartInfo.Arguments = $"{baseAddress} {endpoint} {token} {tempFilePath}";
             process.Start();
