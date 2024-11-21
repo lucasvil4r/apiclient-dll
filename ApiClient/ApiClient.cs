@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-using System.IO;
-using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace ApiClient
 {
     [ComVisible(true)]
     [Guid("A4F02ED9-69C7-45B9-A00C-54D4A7CD842F")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIInspectable)]
+    [InterfaceType(ComInterfaceType.InterfaceIsDual)]
     public interface IApiClient
     {
         [DispId(1)]
-        string RequestRunExecutableApi(string baseAddress, string endpoint, string token);
+        string RequestGetAsyncApi(string baseAddress, string endpoint, string token);
     }
 
     [ComVisible(true)]
@@ -20,35 +21,44 @@ namespace ApiClient
     [ProgId("ApiClient")]
     public class ApiClientAsync : IApiClient
     {
-        public string RequestRunExecutableApi(string baseAddress, string endpoint, string token)
+        public string RequestGetAsyncApi(string baseAddress, string endpoint, string token)
         {
-            // Get the temporary directory path
-            string tempDir = Path.GetTempPath();
-
-            // Create a unique file name for the temporary file
-            string tempFileName = $"api_response_{Guid.NewGuid()}.json";
-
-            // Combine the directory and file name to get the full path
-            string tempFilePath = Path.Combine(tempDir, tempFileName);
-
-            // Execute a aplicação de console
-            var process = new Process();
-            var apiClientPath = Environment.GetEnvironmentVariable("ApiClient"); //Caminho setado na variavel de ambiente do user no windows
-            process.StartInfo.FileName = apiClientPath;
-            process.StartInfo.Arguments = $"{baseAddress} {endpoint} {token} {tempFilePath}";
-            process.Start();
-            process.WaitForExit(); // Aguarda até que o processo termine
-
             try
             {
-                // Lê todo o conteúdo do arquivo e armazena em uma string
-                string fileContent = File.ReadAllText(tempFilePath);
-                return fileContent;
+                // Chama o método assíncrono e espera o resultado.
+                return RequestGetAsync(baseAddress, endpoint, token).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
-                // Em caso de erro, retorna a mensagem de erro
-                return $"Execute:{apiClientPath} / Erro: {ex.Message}";
+                // Retorna a mensagem de erro detalhada.
+                return $"General Error: {ex.Message}\nStackTrace: {ex.StackTrace}";
+            }
+        }
+
+        private async Task<string> RequestGetAsync(string baseAddress, string endpoint, string token)
+        {
+            try
+            {
+                using (var _httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) })
+                {
+                    _httpClient.DefaultRequestHeaders.Accept.Clear();
+                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+                    var response = await _httpClient.GetAsync(endpoint);
+                    response.EnsureSuccessStatusCode(); // Lança exceção se a resposta não for bem-sucedida
+                    return await response.Content.ReadAsStringAsync();
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                var innerEx = ex.InnerException != null ? ex.InnerException.ToString() : "No inner exception.";
+                return $"HttpRequest Error: {ex.Message}\nInner Exception: {innerEx}\nStackTrace: {ex.StackTrace}";
+            }
+            catch (Exception ex)
+            {
+                // Captura erros gerais.
+                return $"General Error: {ex.Message}";
             }
         }
     }
