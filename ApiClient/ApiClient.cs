@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
-using System.Net.Http.Headers;
-using System.Net.Http;
-using System.Threading.Tasks;
+using ApiClient.Core.Models;
+using ApiClient.Core.Services;
 
 namespace ApiClient
 {
@@ -21,44 +20,29 @@ namespace ApiClient
     [ProgId("ApiClient")]
     public class ApiClientAsync : IApiClient
     {
+        private readonly IApiRequestService _requestService;
+
+        public ApiClientAsync()
+            : this(new HttpApiRequestService())
+        {
+        }
+
+        internal ApiClientAsync(IApiRequestService requestService)
+        {
+            _requestService = requestService;
+        }
+
         public string RequestGetAsyncApi(string baseAddress, string endpoint, string token)
         {
             try
             {
-                // Chama o método assíncrono e espera o resultado.
-                return RequestGetAsync(baseAddress, endpoint, token).GetAwaiter().GetResult();
+                var request = new ApiRequestOptions(baseAddress, endpoint, token);
+                var response = _requestService.GetAsync(request).GetAwaiter().GetResult();
+                return response.ResultText;
             }
             catch (Exception ex)
             {
-                // Retorna a mensagem de erro detalhada.
                 return $"General Error: {ex.Message}\nStackTrace: {ex.StackTrace}";
-            }
-        }
-
-        private async Task<string> RequestGetAsync(string baseAddress, string endpoint, string token)
-        {
-            try
-            {
-                using (var _httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) })
-                {
-                    _httpClient.DefaultRequestHeaders.Accept.Clear();
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-
-                    var response = await _httpClient.GetAsync(endpoint);
-                    response.EnsureSuccessStatusCode(); // Lança exceção se a resposta não for bem-sucedida
-                    return await response.Content.ReadAsStringAsync();
-                }
-            }
-            catch (HttpRequestException ex)
-            {
-                var innerEx = ex.InnerException != null ? ex.InnerException.ToString() : "No inner exception.";
-                return $"HttpRequest Error: {ex.Message}\nInner Exception: {innerEx}\nStackTrace: {ex.StackTrace}";
-            }
-            catch (Exception ex)
-            {
-                // Captura erros gerais.
-                return $"General Error: {ex.Message}";
             }
         }
     }

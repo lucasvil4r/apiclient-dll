@@ -1,95 +1,94 @@
-# ApiClient-DLL
+# ApiClient DLL
 
-Uma biblioteca .NET projetada para facilitar integração com APIs assíncrona no DataFlex.
+Biblioteca e executavel para realizar chamadas HTTP `GET` autenticadas com Bearer Token, com foco em integracao com DataFlex e outros clientes que consumam COM ou executem processos externos.
 
-## Recursos
+## Visao geral
 
-- Suporte para chamadas HTTP simplificadas (GET).
-- Uso de bibliotecas confiáveis como **RestSharp** para gerenciar requisições.
-- Compatibilidade com o framework .NET 4.8.
-- Registro para interoperabilidade COM, permitindo integração em aplicativos que suportem bibliotecas COM.
-- Token de autenticação (Bearer Token) pré-definido.
+A solucao foi organizada em tres projetos:
+
+- `ApiClient.Core`: biblioteca compartilhada com a regra de requisicao HTTP e escrita de resposta em arquivo.
+- `ApiClient`: DLL `.NET Framework 4.8` exposta via COM Interop.
+- `ConsoleAppRequestApiClient`: executavel `.NET 8` que recebe parametros por linha de comando, chama a API e grava a resposta em arquivo.
+
+Essa separacao evita duplicacao de codigo. Novas funcionalidades devem entrar primeiro no `ApiClient.Core`; depois, os projetos externos apenas expoem essa funcionalidade para o tipo de consumidor desejado.
 
 ## Requisitos
 
-- **.NET Framework 4.8**.
-- Dependências incluídas:
-  - [RestSharp](https://www.nuget.org/packages/RestSharp/) (versão 112.1.0).
-  - [Microsoft.Bcl.AsyncInterfaces](https://www.nuget.org/packages/Microsoft.Bcl.AsyncInterfaces/).
+- Visual Studio 2022 ou superior.
+- .NET Framework 4.8 Developer Pack.
+- .NET SDK 8 ou superior.
+- Windows, caso use COM Interop ou registro da DLL.
 
----
+## Como compilar
 
-## Como Usar
+Abra a solucao:
 
-### Clone o Repositório
-```bash
-git clone https://github.com/lucasvil4r/apiclient-dll.git
+```powershell
+apiclient-dll.sln
 ```
 
-## Configure a Variável de Ambiente no Windows
-- Crie uma variável de ambiente chamada ApiClient, apontando para o caminho do executável da aplicação.
+Ou compile por linha de comando:
 
-## Parâmetros Necessários
-Ao executar o aplicativo, os seguintes argumentos devem ser fornecidos na ordem indicada:
-
-- BaseAddress: URL base da API.
-- Endpoint: Endpoint da API que será chamado.
-- Token: Token de autenticação (Bearer Token).
-- TempFilePath: Caminho para o arquivo onde o resultado da requisição será gravado.
-
-## Exemplo de Execução
-
-```bash
-ApiClient.exe "https://api.exemplo.com" "/v1/endpoint" "seu_token_aqui" "C:\caminho\para\arquivo.json"
+```powershell
+dotnet build .\apiclient-dll.sln
 ```
 
-##  Fluxo de Operação
-**Servidor**: o código executa os seguintes passos:
+Para registrar a DLL COM, compile o projeto `ApiClient` com `RegisterForComInterop` habilitado. O projeto esta configurado como `x86`, adequado para consumidores COM 32-bit.
 
-- Realiza uma chamada GET para o endpoint especificado, utilizando o token fornecido.
-- Grava a resposta JSON em um arquivo cujo caminho foi passado como argumento.
+## Uso via executavel
 
-```csharp
-public class Program
-{
-    public static void Main(string[] args)
-    {
-        Console.WriteLine("Consultando API...");
-        if (args.Length >= 4)
-        {
-            string baseAddress = args[0];
-            string endpoint = args[1];
-            string token = args[2];
-            string tempFilePath = args[3];
+O executavel recebe os argumentos nesta ordem:
 
-            string json = RequestGetAsyncApi(baseAddress, endpoint, token);
-            GetApiResponseFile(tempFilePath, json);
-        }
-    }
-}
+1. `BaseAddress`: URL base da API.
+2. `Endpoint`: endpoint chamado via `GET`.
+3. `Token`: token de autenticacao Bearer.
+4. `TempFilePath`: caminho do arquivo onde a resposta sera gravada.
+
+Exemplo:
+
+```powershell
+ConsoleAppRequestApiClient.exe "https://api.exemplo.com" "/v1/clientes" "seu_token" "C:\Temp\resposta.json"
 ```
 
-**Exemplo Cliente**: A aplicação cliente executa o programa console, aguardando que a resposta da API seja gravada no arquivo especificado. Em seguida, lê o conteúdo do arquivo para processá-lo.
+Fluxo:
+
+1. O executavel monta a requisicao.
+2. Envia `Accept: application/json`.
+3. Envia `Authorization: Bearer {token}` quando o token for informado.
+4. Executa `GET`.
+5. Grava a resposta ou erro no arquivo informado.
+
+## Uso via COM
+
+A DLL expoe a classe COM:
+
+- `ProgId`: `ApiClient`
+- Interface: `IApiClient`
+- Metodo: `RequestGetAsyncApi(string baseAddress, string endpoint, string token)`
+
+O metodo retorna uma `string` com o conteudo da resposta ou uma mensagem de erro.
+
+## Exemplo DataFlex
 
 ```dataflex
 Function fRequestRunExecutableApi String llbaseAddress String llendpoint String lltoken Returns String
     String sTemp sFileResponse sRequestRunExecutableApi sBuffer sRet
     Integer iChOut iChIn
-    
+
     Get_Environment "TEMP" to sTemp
-    Get_Environment "ApiClient" to sRequestRunExecutableApi // Variavel de ambiente apontando para executavel console
-    
+    Get_Environment "ApiClient" to sRequestRunExecutableApi
+
     Move (sTemp + "\" + (String(DateGetMillisecond(CurrentDateTime()))) + ".json") to sFileResponse
-    
+
     Move (Seq_New_Channel()) to iChOut
     Direct_Output channel iChOut sFileResponse
     Close_Output channel iChOut
     Send Seq_Release_Channel iChOut
-    
+
     Runprogram Shell Background sRequestRunExecutableApi (llbaseAddress * llendpoint * lltoken * sFileResponse)
     Sleep 2
-    
-    Move (Seq_New_Channel()) to iChIn 
+
+    Move (Seq_New_Channel()) to iChIn
     Direct_Input channel iChIn sFileResponse
     While (not(SeqEof))
         Readln channel iChIn sBuffer
@@ -101,3 +100,7 @@ Function fRequestRunExecutableApi String llbaseAddress String llendpoint String 
     Function_Return sRet
 End_Function
 ```
+
+## Documentacao adicional
+
+Veja [docs/architecture.md](docs/architecture.md) para detalhes da arquitetura, responsabilidades dos projetos e orientacoes para novas funcionalidades.
