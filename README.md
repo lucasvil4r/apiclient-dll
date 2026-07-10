@@ -68,6 +68,54 @@ A DLL expoe a classe COM:
 
 O metodo retorna uma `string` com o conteudo da resposta ou uma mensagem de erro.
 
+### Registro da DLL
+
+Para registrar a DLL na maquina onde sera utilizada, execute o **Prompt de Comando como Administrador**:
+
+```cmd
+%windir%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe ApiClient.dll /codebase /tlb
+```
+
+Para remover o registro:
+
+```cmd
+%windir%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe ApiClient.dll /unregister
+```
+
+> **Importante:** todas as DLLs dependentes devem estar na mesma pasta que `ApiClient.dll`:
+>
+> - `ApiClient.Core.dll`
+> - `RestSharp.dll`
+> - `System.Text.Json.dll`
+> - `System.Text.Encodings.Web.dll`
+> - `System.Buffers.dll`
+> - `System.Memory.dll`
+> - `System.Numerics.Vectors.dll`
+> - `System.Runtime.CompilerServices.Unsafe.dll`
+> - `System.Threading.Tasks.Extensions.dll`
+> - `System.IO.Pipelines.dll`
+> - `Microsoft.Bcl.AsyncInterfaces.dll`
+
+### Exemplo DataFlex via COM
+
+```dataflex
+Object oApiClient is a cComAutomationObject
+    Set psProgId to "ApiClient"
+End_Object
+
+Function fRequestComApi String llBaseAddress String llEndpoint String llToken Returns String
+    String sResult
+    Variant vResult
+
+    Send CreateComObject of oApiClient
+    Get ComRequestGetAsyncApi of oApiClient llBaseAddress llEndpoint llToken to vResult
+    Move vResult to sResult
+    Send ReleaseComObject of oApiClient
+
+    Function_Return sResult
+End_Function
+```
+
 ## Exemplo DataFlex
 
 ```dataflex
