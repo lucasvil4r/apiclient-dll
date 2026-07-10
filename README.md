@@ -70,13 +70,18 @@ O metodo retorna uma `string` com o conteudo da resposta ou uma mensagem de erro
 
 ### Registro da DLL
 
-Para registrar a DLL na maquina onde sera utilizada, execute o **Prompt de Comando como Administrador**:
+Execute os scripts na raiz do repositorio **como Administrador**:
+
+- **Registrar:** `register.bat`
+- **Remover registro:** `unregister.bat`
+
+Os scripts apontam para `ApiClient\bin\Release\ApiClient.dll`. Tambem e possivel registrar manualmente:
 
 ```cmd
 %windir%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe ApiClient.dll /codebase /tlb
 ```
 
-Para remover o registro:
+Para remover o registro manualmente:
 
 ```cmd
 %windir%\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe ApiClient.dll /unregister
